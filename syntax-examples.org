@@ -1,0 +1,121 @@
+#+TITLE: syntax-examples
+* Function call
+
+1 2 f
+* List/array
+[1 2 3]
+
+* Quotation
+'(+1) [1 2 3] map // [2 3 4]
+
+** TODO ()
+What should this mean?
+
+Creates a new "variable stack" that has to be empty by the time the group ends.
+
+functions are curried
+
+
+* function def
+def f : Int -> Int -> Int
+= add 1 subtract // Adds two arguments and subtracts 1
+
+** TODO syntax for ending function
+
+* records
+{a 1, b 2} // A record of type {a, b}
+
+** CANCELLED Records as bindings
+#+BEGIN_SRC
+// a * a + b * b + 2 * a * b
+def h : Int -> Int -> Int
+= let {a pop, b pop} a a * b b * + a b * +
+#+END_SRC
+
+#+BEGIN_SRC
+def f : {a : Int, b : Int} -> Int
+= a a * b b * + a b * +
+#+END_SRC
+
+binding run till the end of this scope
+** TODO Are records hashmaps or more like haskell records?
+* CANCELLED Scope
+(let {a pop, b pop} a a * b b * +) a b * + // Illegal
+
+Introduces a new scope
+* CANCELLED function record
+def g : {a, b} -> b
+= a b add
+* CANCELLED Name types
+
+Can attach names to values at the type level
+
+- In function signatures these can be used to have named arguments at call site
+#+BEGIN_SRC language
+def f : Int ;Foo -> Int ;Bar -> Int
+'(1 ;Foo 2 ;Bar f)
+'(2 ;Bar 1 ;Foo f)
+and
+'(1 2 f)
+'(2 1 f) not
+==
+#+END_SRC
+
+- Can name results from functions too
+  #+BEGIN_SRC fundamental
+ 3 2 - ;Foo
+ 1 1 + ;Bar
+ f
+  #+END_SRC
+
+**  Name Type variables
+#+BEGIN_SRC fundamental
+def f : Int ;a:as -> Int ;b:bs -> Int ;a
+#+END_SRC
+
+*** TODO syntax for allowing more than names specified
+*** TODO syntax for adding names
+*** TODO Syntax for removing names
+
+* Each value has a name
+the default name or from a user
+
+- Functions can demand names from values
+- the ;<name> function sets the name <name> to the value at the top of the stack
+- The {} function puts all the values on the stack into a map where each values
+  name is its key
+- Contained to the current function
+- Part of the values type signature
+- Has to be unique if:
+  - {} is used
+  - in a function call
+
+#+BEGIN_SRC fundamental
+    def f : Int ;d
+    = 3 1 +
+
+    10 ;a
+    (
+        1 ;a
+        2 ;b
+        3 ;c
+        f
+    )
+    // {} gives the quotation param an empty stack
+    {}// {a 1, b 2, c 3, d 4}
+    .a ;b  //10 + 1
+    12 ;c
+    '(;!a ;!b ;!c + -) // (a + b) - c aka (10 + 11) - 12
+
+#+END_SRC
+
+* TODO Type System
+
+** Records
+** hindley milner type system
+*** Type inference
+* test
+
+#+BEGIN_SRC fundamental
+[f]
+#+END_SRC
