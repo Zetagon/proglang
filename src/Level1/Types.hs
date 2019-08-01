@@ -32,8 +32,6 @@ data Value = VInt Int
            | VQuote [Expr]
            deriving (Show, Eq)
 
-data Stack = Stack [Value]
-  deriving (Show, Eq)
 
 newtype FNName = FNName String
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
