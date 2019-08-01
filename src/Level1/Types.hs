@@ -2,10 +2,19 @@
 
 module Level1.Types where
 
-data Expr = Word [Expr]
-          | Quote [Expr]
-          | BuiltinWord (Stack -> Stack)
-          | Literal Value
+import qualified Data.Map.Strict as M
+import Control.Monad.State.Strict
+
+data EvalState = EvalState
+                    { _evalSStack :: [Expr]
+                    , _evalSSEnv :: M.Map FNName [Expr] }
+
+type EvalStateM a = StateT EvalState IO a
+
+data Expr = Word FNName
+            | Quote [Expr]
+            | BuiltinWord (EvalStateM ())
+            | Literal Value
 
 instance Show Expr where
   show (Quote exprs) = show exprs
@@ -25,3 +34,6 @@ data Value = VInt Int
 
 data Stack = Stack [Value]
   deriving (Show, Eq)
+
+newtype FNName = FNName String
+  deriving (Eq, Show)

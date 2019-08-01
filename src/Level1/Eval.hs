@@ -3,57 +3,83 @@
 module Level1.Eval (eval, vpop, vdup, vswap, vcat, vcons, vunit, vi, vdip) where
 
 import Level1.Types
+import qualified Data.Map.Strict as M
+import Control.Monad.State.Strict
 
-eval :: Stack -> [Expr] -> Stack
-eval s ((Word (e:exprs)): exprs') = eval ( eval (eval s [e]) exprs ) exprs'
-eval (Stack s) ((Quote exprs): exprs') = eval (Stack $ (VQuote exprs):s) exprs'
-eval s (BuiltinWord f : exprs) = eval (f s ) exprs
-eval (Stack s) ((Literal val):exprs) = eval (Stack $ val:s) exprs
-eval s [] = s
 
-e =
-  [ Literal $ VInt 2
-  , Literal $ VInt 5
-  , Literal $ VInt 2
-  , vdup
-  , BuiltinWord (\(Stack ((VInt x):(VInt y):xs)) -> Stack $ (VInt $ x + y):xs)
-  , BuiltinWord (\(Stack ((VInt x):(VInt y):xs)) -> Stack $ (VInt $ x - y):xs)]
+
+push  :: Expr -> EvalStateM ()
+push x = do
+  state <- get
+  put $ state { _evalSStack = x:(_evalSStack state) }
+
+pop  :: EvalStateM Expr
+pop = do
+  state <- get
+  let x = head $ _evalSStack state
+  put state { _evalSStack = tail $ _evalSStack state}
+  return x
+
+peep :: EvalStateM Expr
+peep = head <$> _evalSStack <$> get
+
+getWord :: FNName -> EvalStateM [Expr]
+getWord name =
+  do
+    w <- M.lookup <$> pure name <*> (_evalSSEnv <$> get)
+    case w of
+      Nothing -> error "Word is not defined!"
+      Just w -> return w
+
+eval  :: [Expr] -> EvalStateM ()
+eval [] = return ()
+eval (x:xs) =
+  case x of
+    Word name -> do eval <$> getWord name
+                    eval xs
+    q@(Quote _) -> push q
+    BuiltinWord fn -> fn
+    val@(Literal _) -> push val
+
+
+
+
 
   --Builtins
-pop :: Stack -> Stack
-pop (Stack (x:xs)) = Stack xs
-vpop = BuiltinWord pop
+vpop = BuiltinWord $ pop *> pure ()
 
-dup :: Stack -> Stack
-dup (Stack (x:xs)) = Stack (x:x:xs)
-vdup = BuiltinWord dup
+vdup = BuiltinWord $ peep >>= push
 
-swap :: Stack -> Stack
-swap (Stack (x:y:xs)) = Stack $ y:x:xs
-vswap = BuiltinWord swap
+vswap = BuiltinWord $ do
+  x <- pop
+  y <- pop
+  push x
+  push y
 
-cat :: Stack -> Stack
-cat (Stack ((VQuote exprs):(VQuote exprs'):xs)) =
-  Stack $ (VQuote $ exprs ++ exprs'):xs
-vcat = BuiltinWord cat
+vcat = BuiltinWord $ do
+  x <- pop
+  y <- pop
+  case (x, y) of
+    (Quote exprs, Quote exprs') -> push $ Quote $ exprs ++ exprs'
 
-cons :: Stack -> Stack
-cons (Stack ((VQuote exprs):(VQuote exprs'):xs)) =
-  Stack $ (VQuote $ (Quote exprs) : exprs'):xs
-vcons = BuiltinWord cons
+vcons = BuiltinWord $ do
+  x <- pop
+  y <- pop
+  case (x, y) of
+    (Quote exprs, Quote exprs') -> push $ Quote $ (Quote exprs): exprs'
 
-unit :: Stack -> Stack
-unit (Stack ((VQuote exprs):xs)) =
-  Stack $ ( VQuote $ [Quote exprs]):xs
-vunit = BuiltinWord unit
+vunit = BuiltinWord $ do
+  push =<< Quote <$> (:[]) <$> pop
 
-i :: Stack -> Stack
-i (Stack ((VQuote exprs):xs)) =
-  eval (Stack xs) exprs
-vi = BuiltinWord i
+vi = BuiltinWord $ do
+  x <- pop
+  case x of
+    Quote exprs -> eval exprs
+    exprs -> eval [exprs]
 
-dip :: Stack -> Stack
-dip (Stack ((VQuote exprs):x:xs)) =
-  let Stack s = eval (Stack xs) exprs
-  in Stack $ x:s
-vdip = BuiltinWord dip
+vdip = BuiltinWord $ do
+  x <- pop
+  y <- pop
+  push x
+  eval [vi]
+  push y
