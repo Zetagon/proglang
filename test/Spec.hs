@@ -89,7 +89,6 @@ lv1 = hspec $ do
         expected <- execStateT (eval [Quote [Literal $ VInt 4], Quote [Literal $ VInt 4], vcons])
                     (EvalState [] M.empty)
         _evalSStack expected `shouldBe` ([Quote [Quote [Literal $ VInt 4], Literal $ VInt 4]])
-
       it "can eval unit" $ do
         expected <- execStateT (eval [Literal $ VInt 4, vunit])
                     (EvalState [] M.empty)
@@ -119,6 +118,44 @@ lv1 = hspec $ do
                     (EvalState [] $ M.singleton (FNName "add3") [add, add])
 
         _evalSStack expected `shouldBe` [Literal $ VInt 12]
+
+      it "errors when evaling NewStackQuote with not enough args" $ do
+        execStateT (eval [ Literal $ VInt 1
+                                     , NewStackQuote 0 [ Literal $ VInt 1
+                                                       , add]
+                                     , vi])
+                    (EvalState [] M.empty) `shouldThrow` anyException
+
+      it "evals when evaling NewStackQuote with 1 argument" $ do
+        _evalSStack <$> execStateT (eval [ Literal $ VInt 1
+                                         , NewStackQuote 1 [ Literal $ VInt 1
+                                                           , add]
+                                     , vi])
+                    (EvalState [] M.empty) `shouldReturn` [Literal $ VInt 2]
+
+      it "evals when evaling NewStackQuote with 2 arguments" $ do
+        _evalSStack <$> execStateT (eval [ Literal $ VInt 10
+                                         , Literal $ VInt 1
+                                         , NewStackQuote 2 [add]
+                                     , vi])
+                    (EvalState [] M.empty) `shouldReturn` [Literal $ VInt 11]
+
+      it "evals when evaling NewStackQuote with 1 argument and a large stack" $ do
+        _evalSStack <$> execStateT (eval [ Literal $ VInt 4
+                                         , Literal $ VInt 1
+                                         , NewStackQuote 1 [ Literal $ VInt 1
+                                                           , add]
+                                     , vi])
+                    (EvalState [] M.empty) `shouldReturn` [Literal $ VInt 2, Literal $ VInt 4]
+
+      it "evals when evaling NewStackQuote" $ do
+        _evalSStack <$> execStateT (eval [ Literal $ VInt 1
+                                         , NewStackQuote 0 [ Literal $ VInt 1
+                                                           , Literal $ VInt 2
+                                                           , add]
+                                         , vi])
+                    (EvalState [] M.empty) `shouldReturn` [Literal $ VInt 3, Literal $ VInt 1]
+
 
 
 

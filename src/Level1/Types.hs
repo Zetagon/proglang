@@ -13,6 +13,7 @@ type EvalStateM a = StateT EvalState IO a
 
 data Expr = Word FNName
             | Quote [Expr]
+            | NewStackQuote Int [Expr]
             | BuiltinWord (EvalStateM ())
             | Literal Value
 

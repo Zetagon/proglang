@@ -32,6 +32,9 @@ getWord name =
       Nothing -> error "Word is not defined!"
       Just expr -> return expr
 
+getEnv :: EvalStateM (M.Map FNName [Expr])
+getEnv = _evalSSEnv <$> get
+
 eval  :: [Expr] -> EvalStateM ()
 eval [] = return ()
 eval (x:xs) =
@@ -39,6 +42,7 @@ eval (x:xs) =
     Word name -> do _ <- eval =<< getWord name
                     eval xs
     q@(Quote _) -> push q >> eval xs
+    q@(NewStackQuote _ _) -> push q >> eval xs
     BuiltinWord fn -> fn >> eval xs
     val@(Literal _) -> push val >> eval xs
 
@@ -80,6 +84,14 @@ vi = BuiltinWord $ do
   x <- pop
   case x of
     Quote exprs -> eval exprs
+    NewStackQuote num exprs ->
+      do
+        env <- getEnv
+        newStack <- reverse <$> take num <$> _evalSStack <$> get
+        resStack <-  lift $ _evalSStack <$> execStateT (eval exprs) (EvalState newStack env)
+        modify (\oldState ->
+                   oldState
+                   { _evalSStack = resStack ++ (drop num $ _evalSStack oldState )})
     exprs -> eval [exprs]
 
 vdip = BuiltinWord $ do
