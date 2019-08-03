@@ -63,6 +63,13 @@ lv1 = hspec $ do
                     (EvalState [] M.empty)
         _evalSStack expected `shouldBe` ([Literal $ VInt 4, Literal $ VInt 4])
 
+      it "can swap items on the stack" $ do
+        expected <- execStateT (eval [ Literal $ VInt 2
+                                     , Literal $ VInt 3
+                                     , vswap])
+                    (EvalState [] M.empty)
+        _evalSStack expected `shouldBe` ([Literal $ VInt 2, Literal $ VInt 3])
+
       it "can eval cat for literals" $ do
         expected <- execStateT (eval [Literal $ VInt 4, Literal $ VInt 4, vcat])
                     (EvalState [] M.empty)
@@ -83,21 +90,35 @@ lv1 = hspec $ do
                     (EvalState [] M.empty)
         _evalSStack expected `shouldBe` ([Quote [Quote [Literal $ VInt 4], Literal $ VInt 4]])
 
-      it "can swap items on the stack" $ do
-        expected <- execStateT (eval [ Literal $ VInt 2
-                                     , Literal $ VInt 3
-                                     , vswap])
+      it "can eval unit" $ do
+        expected <- execStateT (eval [Literal $ VInt 4, vunit])
                     (EvalState [] M.empty)
-        _evalSStack expected `shouldBe` ([Literal $ VInt 2, Literal $ VInt 3])
-      it "can use i" $ do
+        _evalSStack expected `shouldBe` ([Quote [Literal $ VInt 4]])
+
+      it "can eval i" $ do
         expected <- execStateT (eval [ Quote [ Literal $ VInt 3], vi])
                     (EvalState [] M.empty)
         _evalSStack expected `shouldBe` ([Literal $ VInt 3])
+
       it "can use i to apply quote" $ do
         expected <- execStateT (eval [ Literal $ VInt 5
                                      , Quote [ Literal $ VInt 3, add], vi])
                     (EvalState [] M.empty)
         _evalSStack expected `shouldBe` ([Literal $ VInt 8])
+      it "can eval dip" $ do
+        expected <- execStateT (eval [ Literal $ VInt 5
+                                     , Literal $ VInt 9, Quote [ Literal $ VInt 3, add], vdip])
+                    (EvalState [] M.empty)
+        _evalSStack expected `shouldBe` ([Literal $ VInt 9, Literal $ VInt 8])
+
+      it "can eval a function in the environment" $ do
+        expected <- execStateT (eval [ Literal $ VInt 3
+                                     , Literal $ VInt 4
+                                     , Literal $ VInt 5
+                                     , Word $ FNName "add3"])
+                    (EvalState [] $ M.singleton (FNName "add3") [add, add])
+
+        _evalSStack expected `shouldBe` [Literal $ VInt 12]
 
 
 
