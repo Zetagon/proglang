@@ -6,8 +6,9 @@ import qualified Data.Map.Strict as M
 import Control.Monad.State.Strict
 
 data EvalState = EvalState
-                    { _evalSStack :: [Expr]
+                    { _evalSStack :: ![Expr]
                     , _evalSSEnv :: M.Map FNName [Expr] }
+  deriving (Show)
 
 type EvalStateM a = StateT EvalState IO a
 
@@ -18,8 +19,8 @@ data Expr = Word FNName
             | Literal Value
 
 instance Show Expr where
-  show (Quote exprs) = show exprs
-  show (Word exprs) = show exprs
+  show (Quote exprs) = "Quote: " ++ show exprs
+  show (Word exprs) = "Word: " ++ show exprs
   show (Literal val) = show val
   show (BuiltinWord _) = "BuiltIn function"
 
@@ -29,7 +30,7 @@ instance Eq Expr where
   (Literal val) == (Literal val') = val == val'
   _ == _ = False
 
-data Value = VInt Int
+data Value = VInt !Int
            | VQuote [Expr]
            deriving (Show, Eq)
 

@@ -1,6 +1,6 @@
 -- |
 
-module Level1.Eval (eval, vzap, vdup, vswap, vcat, vcons, vunit, vi, vdip, push, pop, peep) where
+module Level1.Eval (eval, vzap, vdup, vswap, vcat, vcons, vunit, vi, vdip, push, pop, peep, getProgramEnv) where
 
 import Level1.Types
 import qualified Data.Map.Strict as M
@@ -32,8 +32,8 @@ getWord name =
       Nothing -> error "Word is not defined!"
       Just expr -> return expr
 
-getEnv :: EvalStateM (M.Map FNName [Expr])
-getEnv = _evalSSEnv <$> get
+getProgramEnv :: EvalStateM (M.Map FNName [Expr])
+getProgramEnv = _evalSSEnv <$> get
 
 eval  :: [Expr] -> EvalStateM ()
 eval [] = return ()
@@ -80,13 +80,14 @@ vcons = BuiltinWord $ do
 vunit = BuiltinWord $ do
   push =<< Quote <$> (:[]) <$> pop
 
+
 vi = BuiltinWord $ do
   x <- pop
   case x of
     Quote exprs -> eval exprs
     NewStackQuote num exprs ->
       do
-        env <- getEnv
+        env <- getProgramEnv
         newStack <- reverse <$> take num <$> _evalSStack <$> get
         resStack <-  lift $ _evalSStack <$> execStateT (eval exprs) (EvalState newStack env)
         modify (\oldState ->
