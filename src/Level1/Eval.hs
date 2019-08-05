@@ -45,6 +45,10 @@ eval (x:xs) =
     q@(NewStackQuote _ _) -> push q >> eval xs
     BuiltinWord fn -> fn >> eval xs
     val@(Literal _) -> push val >> eval xs
+    (Record r) -> push (Record r) >> eval xs
+    (AccessField f) -> do r <- pop
+                          case r of
+                            Record rec -> push (rec M.! f)
 
 
 

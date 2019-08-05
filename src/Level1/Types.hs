@@ -17,12 +17,20 @@ data Expr = Word FNName
             | NewStackQuote Int [Expr]
             | BuiltinWord (EvalStateM ())
             | Literal Value
+            | Record  RecordMap
+            | AccessField FieldName
+
+type RecordMap = M.Map FieldName Expr
+newtype FieldName = FieldName String
+  deriving (Eq, Ord, Show)
 
 instance Show Expr where
   show (Quote exprs) = "Quote: " ++ show exprs
   show (Word exprs) = "Word: " ++ show exprs
   show (Literal val) = show val
   show (BuiltinWord _) = "BuiltIn function"
+  show (Record r) = "Record " ++ show r
+  show (AccessField f) = "AccesField " ++ show f
 
 instance Eq Expr where
   (Word expr) == (Word expr') = expr == expr'
@@ -32,6 +40,7 @@ instance Eq Expr where
 
 data Value = VInt !Int
            | VQuote [Expr]
+           | VRecord RecordMap
            deriving (Show, Eq)
 
 

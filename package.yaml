@@ -50,3 +50,4 @@ tests:
     dependencies:
     - proglang
     - hspec
+    - hspec-expectations
