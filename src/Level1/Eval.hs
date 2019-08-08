@@ -5,36 +5,7 @@ module Level1.Eval (eval, vzap, vdup, vswap, vcat, vcons, vunit, vi, vdip, push,
 import Level1.Types
 import qualified Data.Map.Strict as M
 import Control.Exception
-import Control.Monad.State.Strict
-
-
-
-push  :: Expr -> EvalStateM ()
-push x = do
-  -- s <- get
-  -- put $ s { _evalSStack = x:(_evalSStack s) }
-  modify (\s -> s { _evalSStack = x : (_evalSStack s)})
-
-pop  :: EvalStateM Expr
-pop = do
-  s <- get
-  let x = head $ _evalSStack s
-  modify (\s' -> s' { _evalSStack = tail $ _evalSStack s'})
-  return x
-
-peep :: EvalStateM Expr
-peep = head <$> _evalSStack <$> get
-
-getWord :: FNName -> EvalStateM [Expr]
-getWord name =
-  do
-    w <- M.lookup <$> pure name <*> (_evalSSEnv <$> get)
-    case w of
-      Nothing -> error "Word is not defined!"
-      Just expr -> return expr
-
-getProgramEnv :: EvalStateM (M.Map FNName [Expr])
-getProgramEnv = _evalSSEnv <$> get
+import Level1.EvalState
 
 eval  :: [Expr] -> EvalStateM ()
 eval [] = return ()
@@ -53,7 +24,7 @@ eval (x:xs) =
                               let x = (r' M.!? f)
                               case x of
                                 Just x' -> push x'
-                                Nothing -> lift $ throwIO AccessUnavailableFieldError
+                                Nothing -> runTimeError AccessUnavailableFieldError
                           eval xs
     (UpdateRecord f) -> do val <- pop
                            r <- pop
@@ -103,7 +74,7 @@ vi = BuiltinWord $ do
     NewStackQuote num exprs ->
       do
         env <- getProgramEnv
-        newStack <- reverse <$> take num <$> _evalSStack <$> get
+        newStack <- reverse <$> take num <$> getProgramStack
         resStack <-  lift $ _evalSStack <$> execStateT (eval exprs) (EvalState newStack env)
         modify (\oldState ->
                    oldState

@@ -1,0 +1,214 @@
+The lambdas must flow.
+If I break, you can:
+  1. Restart:           M-x haskell-process-restart
+  2. Configure logging: C-h v haskell-process-log (useful for debugging)
+  3. General config:    M-x customize-mode
+  4. Hide these tips:   C-h v haskell-process-show-debug-tips
+λ> 
+
+
+EvalStateM
+  eval
+    adds ints to the stack
+    can add a record to the stack
+    can extract a field from a record
+    errors when accessing a non-existing field FAILED [1]
+    can eval zap
+    can eval dup
+    can swap items on the stack
+    can eval cat for literals
+    can eval cat for quote
+    can eval cons for literals
+    can eval cons for quote
+    can eval unit
+    can eval i
+    can use i to apply quote
+    can eval dip
+    can eval a function in the environment
+    errors when evaling NewStackQuote with not enough args
+    evals when evaling NewStackQuote with 1 argument
+    evals when evaling NewStackQuote with 2 arguments
+    evals when evaling NewStackQuote with 1 argument and a large stack
+    evals when evaling NewStackQuote
+
+Failures:
+
+  /home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs:52:9: 
+  1) EvalStateM.eval errors when accessing a non-existing field
+       uncaught exception: CompilerOopsie
+       AccessUnavailableFieldError
+
+  To rerun use: --match "/EvalStateM/eval/errors when accessing a non-existing field/"
+
+Randomized with seed 1607521060
+
+Finished in 0.0084 seconds
+21 examples, 1 failure
+*** Exception: ExitFailure 1
+λ> 
+
+<interactive>:30:33-42: error:
+    Variable not in scope: readConfig :: t0 -> [[Char]] -> IO a0
+
+<interactive>:30:44-56: error: Variable not in scope: defaultConfig
+
+<interactive>:30:96-102: error:
+    Variable not in scope:
+      runSpec
+        :: t1 -> a0 -> IO hspec-core-2.6.1:Test.Hspec.Core.Runner.Summary
+
+<interactive>:30:104-107: error: Variable not in scope: spec
+λ> :r
+[4 of 4] Compiling Level1.EvalSpec  ( /home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs, interpreted )
+
+/home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs:57:28-57: error:
+    • No instance for (Eq CompilerOopsie) arising from a use of ‘==’
+    • In the second argument of ‘shouldThrow’, namely
+        ‘(== AccessUnavailableFieldError)’
+      In a stmt of a 'do' block:
+        _evalSStack
+          <$>
+            execStateT
+              (eval
+                 [Record (M.singleton (FieldName "foo") (Literal $ VInt 42)),
+                  AccessField $ FieldName "bar"])
+              (EvalState [] M.empty)
+          `shouldThrow` (== AccessUnavailableFieldError)
+      In the second argument of ‘($)’, namely
+        ‘do _evalSStack
+              <$>
+                execStateT
+                  (eval
+                     [Record (M.singleton (FieldName "foo") (Literal $ VInt 42)),
+                      AccessField $ FieldName "bar"])
+                  (EvalState [] M.empty)
+              `shouldThrow` (== AccessUnavailableFieldError)’
+   |
+57 |             `shouldThrow` (== AccessUnavailableFieldError)
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Failed, three modules loaded.
+λ> 
+
+
+EvalStateM
+  eval
+    adds ints to the stack
+    can add a record to the stack
+    can extract a field from a record
+    errors when accessing a non-existing field
+    can eval zap
+    can eval dup
+    can swap items on the stack
+    can eval cat for literals
+    can eval cat for quote
+    can eval cons for literals
+    can eval cons for quote
+    can eval unit
+    can eval i
+    can use i to apply quote
+    can eval dip
+    can eval a function in the environment
+    errors when evaling NewStackQuote with not enough args
+    evals when evaling NewStackQuote with 1 argument
+    evals when evaling NewStackQuote with 2 arguments
+    evals when evaling NewStackQuote with 1 argument and a large stack
+    evals when evaling NewStackQuote
+
+Finished in 0.0047 seconds
+21 examples, 0 failures
+λ> 
+
+<interactive>:108:33-42: error:
+    Variable not in scope: readConfig :: t0 -> [[Char]] -> IO a0
+
+<interactive>:108:44-56: error:
+    Variable not in scope: defaultConfig
+
+<interactive>:108:96-102: error:
+    Variable not in scope:
+      runSpec
+        :: t1 -> a0 -> IO hspec-core-2.6.1:Test.Hspec.Core.Runner.Summary
+
+<interactive>:108:104-107: error: Variable not in scope: spec
+λ> :r
+[4 of 4] Compiling Level1.EvalSpec  ( /home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs, interpreted )
+
+/home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs:67:13: error:
+    parse error on input ‘k’
+   |
+67 |             k `shouldBe` [Just $ Literal $ VInt 4]
+   |             ^
+Failed, three modules loaded.
+λ> :r
+[4 of 4] Compiling Level1.EvalSpec  ( /home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs, interpreted )
+
+/home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs:67:13: error:
+    parse error on input ‘k’
+   |
+67 |             k `shouldBe` [Just $ Literal $ VInt 4]
+   |             ^
+Failed, three modules loaded.
+λ> :r
+[4 of 4] Compiling Level1.EvalSpec  ( /home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs, interpreted )
+
+/home/leo/Documents/Hobby/proglang/test/Level1/EvalSpec.hs:67:24-48: error:
+    • Couldn't match expected type ‘Maybe Expr’
+                  with actual type ‘[Maybe Expr]’
+    • In the second argument of ‘shouldBe’, namely
+        ‘[Just $ Literal $ VInt 4]’
+      In a stmt of a 'do' block: k `shouldBe` [Just $ Literal $ VInt 4]
+      In the second argument of ‘($)’, namely
+        ‘do expected <- execStateT
+                          (eval
+                             [Record (M.singleton (FieldName "foo") (Literal $ VInt 42)),
+                              Literal $ VInt 4, ....])
+                          (EvalState [] M.empty)
+            let k = ...
+            k `shouldBe` [Just $ Literal $ VInt 4]’
+   |
+67 |           k `shouldBe` [Just $ Literal $ VInt 4]
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+Failed, three modules loaded.
+λ> 
+
+
+EvalStateM
+  eval
+    adds ints to the stack
+    can add a record to the stack
+    can extract a field from a record
+    errors when accessing a non-existing field
+    can update an existing field FAILED [1]
+    can eval zap
+    can eval dup
+    can swap items on the stack
+    can eval cat for literals
+    can eval cat for quote
+    can eval cons for literals
+    can eval cons for quote
+    can eval unit
+    can eval i
+    can use i to apply quote
+    can eval dip
+    can eval a function in the environment
+    errors when evaling NewStackQuote with not enough args
+    evals when evaling NewStackQuote with 1 argument
+    evals when evaling NewStackQuote with 2 arguments
+    evals when evaling NewStackQuote with 1 argument and a large stack
+    evals when evaling NewStackQuote
+
+Failures:
+
+  /home/leo/Documents/Hobby/proglang/src/Level1/Eval.hs:42:3: 
+  1) EvalStateM.eval can update an existing field
+       uncaught exception: PatternMatchFail
+       /home/leo/Documents/Hobby/proglang/src/Level1/Eval.hs:(42,3)-(57,33): Non-exhaustive patterns in case
+
+  To rerun use: --match "/EvalStateM/eval/can update an existing field/"
+
+Randomized with seed 976634137
+
+Finished in 0.0072 seconds
+22 examples, 1 failure
+*** Exception: ExitFailure 1
+λ> 
