@@ -4,6 +4,7 @@ module Level1.Eval (eval, vzap, vdup, vswap, vcat, vcons, vunit, vi, vdip, push,
 
 import Level1.Types
 import qualified Data.Map.Strict as M
+import Control.Exception
 import Control.Monad.State.Strict
 
 
@@ -48,7 +49,17 @@ eval (x:xs) =
     (Record r) -> push (Record r) >> eval xs
     (AccessField f) -> do r <- pop
                           case r of
-                            Record rec -> push (rec M.! f)
+                            Record r' -> do
+                              let x = (r' M.!? f)
+                              case x of
+                                Just x' -> push x'
+                                Nothing -> lift $ throwIO AccessUnavailableFieldError
+                          eval xs
+    (UpdateRecord f) -> do val <- pop
+                           r <- pop
+                           case r of
+                             Record r' -> do
+                               push $ Record $ M.insert f val r'
 
 
 

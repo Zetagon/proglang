@@ -3,6 +3,7 @@
 module Level1.Types where
 
 import qualified Data.Map.Strict as M
+import Control.Exception
 import Control.Monad.State.Strict
 
 data EvalState = EvalState
@@ -19,6 +20,7 @@ data Expr = Word FNName
             | Literal Value
             | Record  RecordMap
             | AccessField FieldName
+            | UpdateRecord FieldName
 
 type RecordMap = M.Map FieldName Expr
 newtype FieldName = FieldName String
@@ -46,3 +48,10 @@ data Value = VInt !Int
 
 newtype FNName = FNName String
   deriving (Eq, Show, Ord)
+
+-- | The compiler did something wrong and our assumptions have been violated
+data CompilerError =
+  AccessUnavailableFieldError
+  deriving (Show, Eq)
+
+instance Exception CompilerError
