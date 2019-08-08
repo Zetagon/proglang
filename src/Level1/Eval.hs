@@ -73,12 +73,13 @@ vi = BuiltinWord $ do
     Quote exprs -> eval exprs
     NewStackQuote num exprs ->
       do
-        env <- getProgramEnv
         newStack <- reverse <$> take num <$> getProgramStack
-        resStack <-  lift $ _evalSStack <$> execStateT (eval exprs) (EvalState newStack env)
-        modify (\oldState ->
-                   oldState
-                   { _evalSStack = resStack ++ (drop num $ _evalSStack oldState )})
+        newState <- (newStateWithStack newStack)
+        resStack <-  _evalSStack <$> execEvalStateM (eval exprs) newState
+        modifyProgramStack
+          (\oldStack ->
+               resStack ++ (drop num $ oldStack ))
+
     exprs -> eval [exprs]
 
 vdip = BuiltinWord $ do

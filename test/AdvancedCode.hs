@@ -11,8 +11,8 @@ import Test.Hspec
 advanced = do
   describe "Code Examples" $ do
     it "can run fibonacci" $ do
-      _evalSStack <$> execStateT (eval [ Literal $ VInt 4
-                                       , Literal $ VInt 1
-                                       , Literal $ VInt 1
-                                       , Word $ FNName "fib"])
-        (EvalState [] defaultEnv) `shouldReturn` [Literal $ VInt 2]
+      _evalSStack <$> runDefaultEvalStateM (eval [ Literal $ VInt 4
+                                                 , Literal $ VInt 1
+                                                 , Literal $ VInt 1
+                                                 , Word $ FNName "fib"])
+         `shouldReturn` [Literal $ VInt 2]

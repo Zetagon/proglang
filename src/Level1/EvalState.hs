@@ -5,7 +5,7 @@ module Level1.EvalState
   ( lift
   , modify
   , execStateT
-  , module Level1.EvalState)
+  , EvalStateM, newStateWithStack, runEvalStateM, execEvalStateM, EvalState, _evalSStack, push, pop, peep, getWord, getProgramEnv, getProgramStack, modifyProgramStack, runTimeError, RecordMap, FieldName(..), Expr(..), FNName(..), Value(..))
 where
 
 import qualified Data.Map.Strict as M
@@ -27,6 +27,19 @@ data EvalState = EvalState
   deriving (Show)
 
 type EvalStateM a = StateT EvalState IO a
+
+execEvalStateM :: EvalStateM a -> EvalState -> EvalStateM EvalState
+execEvalStateM m s = lift $ execStateT m s
+
+
+runEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO EvalState
+runEvalStateM m env = execStateT m (EvalState [] env)
+
+newStateWithStack :: [Expr] -> EvalStateM (EvalState)
+newStateWithStack stack = do
+  env <- getProgramEnv
+  return $ EvalState stack env
+
 
 
 push  :: Expr -> EvalStateM ()
@@ -59,6 +72,12 @@ getProgramEnv = _evalSSEnv <$> get
 
 getProgramStack :: EvalStateM [Expr]
 getProgramStack = _evalSStack <$> get
+
+modifyProgramStack :: ([Expr] -> [Expr]) -> EvalStateM ()
+modifyProgramStack f = modify (\oldState ->
+                                 oldState
+                                { _evalSStack = f $ _evalSStack oldState })
+
 
 runTimeError :: (Exception a) => a -> EvalStateM ()
 runTimeError = lift . throwIO
