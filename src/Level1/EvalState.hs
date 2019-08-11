@@ -23,7 +23,10 @@ import Control.Monad.State.Strict
 
 data EvalState = EvalState
                     { _evalSStack :: ![Expr]
-                    , _evalSSEnv :: M.Map FNName [Expr] }
+                    , _evalSSEnv :: Environment }
+  deriving (Show)
+
+data Environment = Environment ![M.Map FNName [Expr]]
   deriving (Show)
 
 type EvalStateM a = StateT EvalState IO a
@@ -33,7 +36,7 @@ execEvalStateM m s = lift $ execStateT m s
 
 
 runEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO EvalState
-runEvalStateM m env = execStateT m (EvalState [] env)
+runEvalStateM m env = execStateT m (EvalState [] (Environment [env]) )
 
 newStateWithStack :: [Expr] -> EvalStateM (EvalState)
 newStateWithStack stack = do
@@ -62,12 +65,20 @@ peep = head <$> _evalSStack <$> get
 getWord :: FNName -> EvalStateM [Expr]
 getWord name =
   do
-    w <- M.lookup <$> pure name <*> (_evalSSEnv <$> get)
+    w <- lookThroughEnv' <$> (_evalSSEnv <$> get)
     case w of
       Nothing -> error "Word is not defined!"
       Just expr -> return expr
+      where
+        lookThroughEnv' (Environment xs) = lookThroughEnv xs
+        lookThroughEnv :: [M.Map FNName v] -> Maybe v
+        lookThroughEnv [] = Nothing
+        lookThroughEnv (x:xs) =
+          case M.lookup name x of
+            Nothing -> lookThroughEnv xs
+            Just v -> Just v
 
-getProgramEnv :: EvalStateM (M.Map FNName [Expr])
+getProgramEnv :: EvalStateM (Environment)
 getProgramEnv = _evalSSEnv <$> get
 
 getProgramStack :: EvalStateM [Expr]

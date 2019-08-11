@@ -2,6 +2,7 @@
 
 module Level1.BuiltInSpec where
 import Test.Hspec
+import Test.QuickCheck
 
 import qualified Data.Map.Strict as M
 import Control.Monad.State.Strict
@@ -74,3 +75,13 @@ spec = do
                                                    , largerThan
                                                    , vif])
            `shouldReturn` [Literal $ VInt 2]
+
+      it "can compare any numbers with largerThan" $ property $
+        \(x, y, a, b) -> _evalSStack <$> runDefaultEvalStateM (eval [ Literal $ VInt a
+                                                                    , Literal $ VInt b
+                                                                    , Literal $ VInt x
+                                                                    , Literal $ VInt y
+                                                                    , largerThan
+                                                                    , vif])
+                         `shouldReturn` [Literal $ VInt $
+                                          if x > y then a else b]

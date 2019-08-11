@@ -139,12 +139,14 @@ sub = BuiltinWord $ do
 largerThan = BuiltinWord $ do
   y <- pop
   x <- pop
-  env <- getProgramEnv
   case (x, y) of
     (Literal (VInt x'), Literal (VInt y')) ->
-      push (if x' > y'
-            then head $ env M.! FNName "true"
-            else head $ env M.! FNName "false")
+      -- push =<< (if x' > y'
+                -- then head <$> getWord $  FNName "true"
+                -- else head <$> getWord $  FNName "false")
+      eval =<< ( if x' > y'
+                 then getWord $ FNName "true"
+                 else getWord $ FNName "false")
     (x', y') -> do
       state <- get
       error ("Expected two numbers. Got instead:\n x: " ++
