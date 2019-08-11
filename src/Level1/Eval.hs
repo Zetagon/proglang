@@ -60,7 +60,7 @@ vcons = BuiltinWord $ do
   x <- pop
   y <- pop
   case (x, y) of
-    (Quote exprs, Quote exprs') -> push $ Quote $ (Quote exprs): exprs'
+    (Quote program, arg) -> push $ Quote $ arg:program
     (expr, expr') -> push $ Quote [Quote [expr], expr']
 
 vunit = BuiltinWord $ do

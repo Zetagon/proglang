@@ -71,6 +71,16 @@ spec = do
           expected <- runDefaultEvalStateM (eval [Quote [Literal $ VInt 4], Quote [Literal $ VInt 4], vcat])
           _evalSStack expected `shouldBe` ([Quote [Literal $ VInt 4, Literal $ VInt 4]])
 
+        it "can hardwire parameter with cons" $ do
+          _evalSStack <$> runDefaultEvalStateM (eval [ Literal $ VInt 4
+                                                     , Quote [ Literal $ VInt 3
+                                                             , add]
+                                                     , vcons
+                                                     , vi
+                                                     ])
+            `shouldReturn` [ Literal $ VInt 7 ]
+
+
         it "can eval cons for literals" $ do
           expected <- runDefaultEvalStateM (eval [Literal $ VInt 4, Literal $ VInt 4, vcons])
           _evalSStack expected `shouldBe` ([Quote [Quote [Literal $ VInt 4], Literal $ VInt 4]])
