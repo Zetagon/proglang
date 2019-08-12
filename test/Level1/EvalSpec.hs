@@ -8,6 +8,7 @@ import qualified Data.Map.Strict as M
 import Level1.Eval
 import Level1.Types
 import Level1.BuiltIn
+import Level1.Errors
 
 spec :: Spec
 spec = do
@@ -150,3 +151,30 @@ spec = do
                                                                        , add]
                                                      , vi])
              `shouldReturn` [Literal $ VInt 3, Literal $ VInt 1]
+
+        it "can bind a function and call it" $ do
+          _evalSStack <$> runDefaultEvalStateM (eval [ Quote [ add ]
+                                                     , BindName $ FNName "foo"
+                                                     , Literal $ VInt 4
+                                                     , Literal $ VInt 3
+                                                     , Word $ FNName "foo"])
+            `shouldReturn` [Literal $ VInt 7]
+
+        it "can bind a function in a scope and call it" $ do
+          _evalSStack <$> runDefaultEvalStateM (eval [ Quote [ Quote [ add ]
+                                                             , BindName $ FNName "foo"
+                                                             , Literal $ VInt 4
+                                                             , Literal $ VInt 3
+                                                             , Word $ FNName "foo"]
+                                                     , vi])
+            `shouldReturn` [Literal $ VInt 7]
+
+
+        it "can't call a word out of scope" $ do
+          _evalSStack <$> runDefaultEvalStateM (eval [ Quote [ Quote [ add ]
+                                                             , BindName $ FNName "foo"]
+                                                     , vi
+                                                     , Literal $ VInt 4
+                                                     , Literal $ VInt 3
+                                                     , Word $ FNName "foo"])
+            `shouldThrow` (== WordIsNotDefinedError)

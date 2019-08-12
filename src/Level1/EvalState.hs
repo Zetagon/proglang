@@ -5,12 +5,13 @@ module Level1.EvalState
   ( lift
   , modify
   , execStateT
-  , EvalStateM, newStateWithStack, runEvalStateM, execEvalStateM, EvalState, _evalSStack, push, pop, peep, getWord, getProgramEnv, getProgramStack, modifyProgramStack, runTimeError, RecordMap, FieldName(..), Expr(..), FNName(..), Value(..))
+  , EvalStateM, withNewScope, newStateWithStack,evalEvalStateM, runEvalStateM, execEvalStateM, EvalState, _evalSSEnv, _evalSStack, push, pop, peep, addWord, getWord, getProgramEnv, getProgramStack, modifyProgramStack, runTimeError, RecordMap, FieldName(..), Expr(..), FNName(..), Value(..))
 where
 
 import qualified Data.Map.Strict as M
 import Control.Exception
 import Control.Monad.State.Strict
+import Level1.Errors
 
 -- class EvalStateM where
 --   push :: Expr -> EvalStateM ()
@@ -38,11 +39,21 @@ execEvalStateM m s = lift $ execStateT m s
 runEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO EvalState
 runEvalStateM m env = execStateT m (EvalState [] (Environment [env]) )
 
+evalEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO a
+evalEvalStateM m env = evalStateT m (EvalState [] (Environment [env]) )
+
 newStateWithStack :: [Expr] -> EvalStateM (EvalState)
 newStateWithStack stack = do
   env <- getProgramEnv
   return $ EvalState stack env
 
+withNewScope :: EvalStateM a -> EvalStateM ()
+withNewScope m = do
+  s <- get
+  Environment env <- getProgramEnv
+  newState <- execEvalStateM m $ s { _evalSSEnv = Environment $ M.empty : env }
+  modify (\oldState -> oldState { _evalSStack = _evalSStack newState })
+  return ()
 
 
 push  :: Expr -> EvalStateM ()
@@ -62,12 +73,19 @@ pop = do
 peep :: EvalStateM Expr
 peep = head <$> _evalSStack <$> get
 
+addWord :: FNName -> Expr -> EvalStateM ()
+addWord name (Quote exprs) = do
+  modify (\s -> s {
+             _evalSSEnv = let Environment (x:xs) = _evalSSEnv s
+                              x' =  M.insert name exprs x
+                          in Environment (x':xs)})
+
 getWord :: FNName -> EvalStateM [Expr]
 getWord name =
   do
     w <- lookThroughEnv' <$> (_evalSSEnv <$> get)
     case w of
-      Nothing -> error "Word is not defined!"
+      Nothing -> throw WordIsNotDefinedError
       Just expr -> return expr
       where
         lookThroughEnv' (Environment xs) = lookThroughEnv xs
@@ -105,6 +123,7 @@ data Expr = Word FNName
             | Record  RecordMap
             | AccessField FieldName
             | UpdateRecord FieldName
+            | BindName FNName
 
 instance Show Expr where
   show (Quote exprs) = "Quote: " ++ show exprs
@@ -113,6 +132,7 @@ instance Show Expr where
   show (BuiltinWord _) = "BuiltIn function"
   show (Record r) = "Record " ++ show r
   show (AccessField f) = "AccesField " ++ show f
+  show (BindName n) = "BindName " ++ show n
 
 instance Eq Expr where
   (Word expr) == (Word expr') = expr == expr'

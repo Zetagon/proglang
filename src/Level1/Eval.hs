@@ -6,12 +6,13 @@ import Level1.Types
 import qualified Data.Map.Strict as M
 import Control.Exception
 import Level1.EvalState
+import Level1.Errors
 
-eval  :: [Expr] -> EvalStateM ()
+eval :: [Expr] -> EvalStateM ()
 eval [] = return ()
 eval (x:xs) =
   case x of
-    Word name -> do _ <- eval =<< getWord name
+    Word name -> do _ <- withNewScope $ eval =<< getWord name
                     eval xs
     q@(Quote _) -> push q >> eval xs
     q@(NewStackQuote _ _) -> push q >> eval xs
@@ -31,7 +32,10 @@ eval (x:xs) =
                            case r of
                              Record r' -> do
                                push $ Record $ M.insert f val r'
-
+    (BindName f) -> do
+      x' <- pop
+      addWord f x'
+      eval xs
 
 
 
@@ -70,7 +74,7 @@ vunit = BuiltinWord $ do
 vi = BuiltinWord $ do
   x <- pop
   case x of
-    Quote exprs -> eval exprs
+    Quote exprs -> withNewScope $ eval exprs
     NewStackQuote num exprs ->
       do
         newStack <- reverse <$> take num <$> getProgramStack

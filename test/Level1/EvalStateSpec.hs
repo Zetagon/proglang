@@ -21,3 +21,11 @@ spec = do
                                      push $ Literal $ VInt 2
                                  )
           _evalSStack expected `shouldBe` ([Literal $ VInt 2, Literal $ VInt 1])
+
+
+      describe "addWord" $ do
+        it "can add a word to env" $ do
+          expected <-  evalEvalStateM (do addWord (FNName "foo") $ Quote [ Literal $ VInt 3 ]
+                                          getWord (FNName "foo"))
+                       (defaultEnv)
+          (expected) `shouldBe` ([Literal $ VInt 3])
