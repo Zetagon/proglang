@@ -45,11 +45,91 @@ defaultEnv = M.fromList
                    , vdip
                    , Quote [Word $ FNName "rot3b"]
                    , vdip
-                   -- , BuiltinWord $ _evalSStack <$> get >>= lift . print
                    , vi
-                   ])]
+                   ])
+  , (FNName "group3", [Quote [ vunit
+                             , vswap
+                             , vunit
+                             , vswap
+                             , Word $ FNName "rot3"
+                             , vunit
+                             , Word $ FNName "rot3b"
+                             , vcat
+                             , vcat]])
+  , (FNName "cons3", [ Word $ FNName "group3"
+                     , vdip
+                     , vcons])
+  , (FNName "fib2", [
+        Word $ FNName "rot3"
+        , vdup
+        , Quote [ Word $ FNName "rot3b" ], vdip
+        , Word $ FNName "rot3b" -- make 2 is at the bottom of stack
+        , Word $ FNName "group3"
+        , vdup
+        , Quote [ Quote [ vdup ]
+                , vdip
+                , add
+                , Word $ FNName "fib2"]
+        , vcons
+        , vswap
+        , Quote [ Quote [ vzap ]
+                , vdip
+                , Quote [ vzap ]
+                , vdip
+                ]
+        , vcons -- i [true] [ false ]
+        , Word $ FNName "rot3"
+        , Literal $ VInt $ 0
+        , largerThan
+        , vif
+        ])
+    , (FNName "fib3", [
+                        vunit
+                      , BindName $ FNName "a"
+                      , vunit
+                      , BindName $ FNName "b"
+                      , vunit
+                      , BindName $ FNName "i"
 
--- i
+                      , Quote [
+                                Literal $ VInt 1
+                              , Word $ FNName "i"
+                              , sub
+                              , Word $ FNName "a"
+                              , Word $ FNName "b"
+                              , Word $ FNName "a"
+                              , add
+                              , Word $ FNName "fib3"]
+                      , Quote [ Word $ FNName "b"
+                              -- , BuiltinWord $ do
+                              --     env <- getProgramEnv
+                              --     lift $ print env
+                              --     a <- (getWord $ FNName "a")
+                              --     b <- (getWord $ FNName "b")
+                              --     i <- (getWord $ FNName "i")
+                              --     lift $ print a
+                              --     lift $ print b
+                              --     lift $ print i
+                              --     stack <- getProgramStack
+                              --     lift $ print stack
+                              ]
+                      , Word $ FNName "i"
+                      , Literal $ VInt 0
+                      , BuiltinWord $ do
+                          -- env <- getProgramEnv
+                          -- lift $ print env
+                          -- a <- (getWord $ FNName "a")
+                          b <- (getWord $ FNName "b")
+                          -- i <- (getWord $ FNName "i")
+                          -- lift $ print a
+                          lift $ print b
+                          -- lift $ print i
+                          -- stack <- getProgramStack
+                          -- lift $ print stack
+                      , largerThan
+                      , vif])]
+
+  -- i
 -- a
 -- b
 
