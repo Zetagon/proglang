@@ -8,6 +8,7 @@ import Control.Exception
 import Level1.EvalState
 import Level1.Errors
 
+-- | Evaluate expressions
 eval :: [Expr] -> EvalStateM ()
 eval [] = return ()
 eval (x:xs) =
@@ -41,18 +42,22 @@ eval (x:xs) =
 
 
   --Builtins
+-- | Drop a value from the stack
 vzap = BuiltinWord $ do-- pop *> pure ()
   pop
   return ()
 
+-- | Duplicate a value on the stack
 vdup = BuiltinWord $ peep >>= push
 
+-- | Swap two items on the stack
 vswap = BuiltinWord $ do
   x <- pop
   y <- pop
   push x
   push y
 
+-- | Concat two programs together
 vcat = BuiltinWord $ do
   x <- pop
   y <- pop
@@ -60,6 +65,7 @@ vcat = BuiltinWord $ do
     (Quote exprs, Quote exprs') -> push $ Quote $ exprs ++ exprs'
     (expr, expr') -> push $ Quote [expr, expr']
 
+-- | Hardwire the argument of one function
 vcons = BuiltinWord $ do
   x <- pop
   y <- pop
@@ -67,10 +73,12 @@ vcons = BuiltinWord $ do
     (Quote program, arg) -> push $ Quote $ arg:program
     (expr, expr') -> push $ Quote [Quote [expr], expr']
 
+-- | Quote the top item of the stack
 vunit = BuiltinWord $ do
   push =<< Quote <$> (:[]) <$> pop
 
 
+-- | Evaluate the top item of the stack
 vi = BuiltinWord $ do
   x <- pop
   case x of
@@ -83,12 +91,22 @@ vi = BuiltinWord $ do
         modifyProgramStack
           (\oldStack ->
                resStack ++ (drop num $ oldStack ))
-
     exprs -> eval [exprs]
 
+-- | Evaluate the top item of the stack but remove the second item of the stack.
+-- After evaluation is done, put the removed item on the top of the stack.
+-- Ex.
+-- [ [add] 2 3 4 ]
+-- dip
+-- -> Evaluates to [ 2 7 ]
 vdip = BuiltinWord $ do
   x <- pop
   y <- pop
   push x
   eval [vi]
   push y
+
+-- evalNewStackQuote = BuiltinWord $ do
+--   x <- pop
+--   case x of
+--     NewStackQuote num exprs

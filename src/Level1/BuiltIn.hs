@@ -7,9 +7,11 @@ import Level1.Eval
 import qualified Data.Map.Strict as M
 import Control.Monad.State.Strict
 
+-- | Run an interpreter with the defualt environment
 runDefaultEvalStateM :: EvalStateM a -> IO EvalState
 runDefaultEvalStateM m = runEvalStateM m defaultEnv
 
+-- | The default environment
 defaultEnv :: M.Map FNName [Expr]
 defaultEnv = M.fromList
   [ (FNName "if", [ vi ])

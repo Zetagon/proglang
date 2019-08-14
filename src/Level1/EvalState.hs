@@ -22,32 +22,43 @@ import Level1.Errors
 
 
 
+-- | The state of the interpreter
 data EvalState = EvalState
-                    { _evalSStack :: ![Expr]
-                    , _evalSSEnv :: Environment }
+                    { _evalSStack :: ![Expr] -- ^ The program stack where all the values are stored
+                    , _evalSSEnv :: Environment -- ^ The program environment. See 'Environment'
+                    }
   deriving (Show)
 
+-- | The program environment where all the top level defintions are stored. Later name bindings are store here with lexical scoping
 data Environment = Environment ![M.Map FNName [Expr]]
   deriving (Show)
 
-type EvalStateM a = StateT EvalState IO a
+-- | The interpreter monad
+type EvalStateM a = (StateT EvalState IO a)
 
+-- | Run the interpreter and return the final state.
 execEvalStateM :: EvalStateM a -> EvalState -> EvalStateM EvalState
 execEvalStateM m s = lift $ execStateT m s
 
 
+-- | run the interpreter with given environment
 runEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO EvalState
 runEvalStateM m env = execStateT m (EvalState [] (Environment [env]) )
 
+-- | run the interpreter with given environment.
+-- Return the final result of the monad
 evalEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO a
 evalEvalStateM m env = evalStateT m (EvalState [] (Environment [env]) )
 
+-- | TODO
 newStateWithStack :: [Expr] -> EvalStateM (EvalState)
 newStateWithStack stack = do
   env <- getProgramEnv
   return $ EvalState stack env
 
-withNewScope :: EvalStateM a -> EvalStateM ()
+-- | run m with a new scope inserted
+withNewScope :: EvalStateM a -- ^ m
+  -> EvalStateM ()
 withNewScope m = do
   s <- get
   Environment env <- getProgramEnv
@@ -56,6 +67,7 @@ withNewScope m = do
   return ()
 
 
+-- | push a new value onto the program stack
 push  :: Expr -> EvalStateM ()
 push x = do
   -- s <- get
@@ -63,6 +75,7 @@ push x = do
   modify (\s -> s { _evalSStack = x : (_evalSStack s)})
 
 
+-- | pop a value from the program stack
 pop  :: EvalStateM Expr
 pop = do
   s <- get
@@ -70,9 +83,11 @@ pop = do
   modify (\s' -> s' { _evalSStack = tail $ _evalSStack s'})
   return x
 
+-- | get the top value from the program stack
 peep :: EvalStateM Expr
 peep = head <$> _evalSStack <$> get
 
+-- Add a word to the program environment with the given name
 addWord :: FNName -> Expr -> EvalStateM ()
 addWord name (Quote exprs) = do
   modify (\s -> s {
@@ -80,6 +95,7 @@ addWord name (Quote exprs) = do
                               x' =  M.insert name exprs x
                           in Environment (x':xs)})
 
+-- Get the word with the given name from the environment
 getWord :: FNName -> EvalStateM [Expr]
 getWord name =
   do
@@ -115,15 +131,16 @@ type RecordMap = M.Map FieldName Expr
 newtype FieldName = FieldName String
   deriving (Eq, Ord, Show)
 
-data Expr = Word FNName
-            | Quote [Expr]
-            | NewStackQuote Int [Expr]
-            | BuiltinWord (EvalStateM ())
-            | Literal Value
-            | Record  RecordMap
-            | AccessField FieldName
-            | UpdateRecord FieldName
-            | BindName FNName
+-- | The Ast
+data Expr = Word FNName -- ^ a function
+            | Quote [Expr] -- ^ Unevaluated ast
+            | NewStackQuote Int [Expr] -- ^ TODO
+            | BuiltinWord (EvalStateM ()) -- ^ A word that is defined in haskell code
+            | Literal Value -- ^ A value
+            | Record  RecordMap -- ^ A record
+            | AccessField FieldName -- ^ Get the word with the name from the record ontop of the stack and push it onto the stack
+            | UpdateRecord FieldName -- ^ Update a field from the record at the top of the stack
+            | BindName FNName -- ^ Bind the item on the top of the stack to a name
 
 instance Show Expr where
   show (Quote exprs) = "Quote: " ++ show exprs
@@ -140,10 +157,12 @@ instance Eq Expr where
   (Literal val) == (Literal val') = val == val'
   _ == _ = False
 
+-- The base values in the language
 data Value = VInt !Int
            | VQuote [Expr]
            | VRecord RecordMap
            deriving (Show, Eq)
 
+-- Names for functions
 newtype FNName = FNName String
   deriving (Eq, Show, Ord)
