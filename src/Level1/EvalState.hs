@@ -1,9 +1,11 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- |
 --
 
 module Level1.EvalState
-  ( lift
-  , modify
+  ( liftS
+  , modifyS
+  , getS
   , execStateT
   , EvalStateM, withNewScope, newStateWithStack,evalEvalStateM, runEvalStateM, execEvalStateM, EvalState, _evalSSEnv, _evalSStack, push, pop, peep, addWord, getWord, getProgramEnv, getProgramStack, modifyProgramStack, runTimeError, RecordMap, FieldName(..), Expr(..), FNName(..), Value(..))
 where
@@ -34,21 +36,22 @@ data Environment = Environment ![M.Map FNName [Expr]]
   deriving (Show)
 
 -- | The interpreter monad
-type EvalStateM a = (StateT EvalState IO a)
+newtype EvalStateM a = EvalStateM (StateT EvalState IO a)
+  deriving (Monad, Applicative, Functor)
 
 -- | Run the interpreter and return the final state.
 execEvalStateM :: EvalStateM a -> EvalState -> EvalStateM EvalState
-execEvalStateM m s = lift $ execStateT m s
+execEvalStateM (EvalStateM m) s = EvalStateM $ lift $ execStateT m s
 
 
 -- | run the interpreter with given environment
 runEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO EvalState
-runEvalStateM m env = execStateT m (EvalState [] (Environment [env]) )
+runEvalStateM (EvalStateM m) env = execStateT m (EvalState [] (Environment [env]) )
 
 -- | run the interpreter with given environment.
 -- Return the final result of the monad
 evalEvalStateM :: EvalStateM a -> M.Map FNName [Expr] -> IO a
-evalEvalStateM m env = evalStateT m (EvalState [] (Environment [env]) )
+evalEvalStateM (EvalStateM m) env = evalStateT m (EvalState [] (Environment [env]) )
 
 -- | TODO
 newStateWithStack :: [Expr] -> EvalStateM (EvalState)
@@ -60,37 +63,45 @@ newStateWithStack stack = do
 withNewScope :: EvalStateM a -- ^ m
   -> EvalStateM ()
 withNewScope m = do
-  s <- get
+  s <- getS
   Environment env <- getProgramEnv
   newState <- execEvalStateM m $ s { _evalSSEnv = Environment $ M.empty : env }
-  modify (\oldState -> oldState { _evalSStack = _evalSStack newState })
+  modifyS (\oldState -> oldState { _evalSStack = _evalSStack newState })
   return ()
 
+getS :: (EvalStateM EvalState)
+getS = EvalStateM get
+
+modifyS :: (EvalState -> EvalState) -> EvalStateM ()
+modifyS = EvalStateM . modify
+
+liftS :: IO a -> EvalStateM a
+liftS = EvalStateM . lift
 
 -- | push a new value onto the program stack
 push  :: Expr -> EvalStateM ()
 push x = do
   -- s <- get
   -- put $ s { _evalSStack = x:(_evalSStack s) }
-  modify (\s -> s { _evalSStack = x : (_evalSStack s)})
+  modifyS (\s -> s { _evalSStack = x : (_evalSStack s)})
 
 
 -- | pop a value from the program stack
 pop  :: EvalStateM Expr
 pop = do
-  s <- get
+  s <- getS
   let x = head $ _evalSStack s
-  modify (\s' -> s' { _evalSStack = tail $ _evalSStack s'})
+  modifyS (\s' -> s' { _evalSStack = tail $ _evalSStack s'})
   return x
 
 -- | get the top value from the program stack
 peep :: EvalStateM Expr
-peep = head <$> _evalSStack <$> get
+peep = head <$> _evalSStack <$> getS
 
 -- Add a word to the program environment with the given name
 addWord :: FNName -> Expr -> EvalStateM ()
 addWord name (Quote exprs) = do
-  modify (\s -> s {
+  modifyS (\s -> s {
              _evalSSEnv = let Environment (x:xs) = _evalSSEnv s
                               x' =  M.insert name exprs x
                           in Environment (x':xs)})
@@ -99,7 +110,7 @@ addWord name (Quote exprs) = do
 getWord :: FNName -> EvalStateM [Expr]
 getWord name =
   do
-    w <- lookThroughEnv' <$> (_evalSSEnv <$> get)
+    w <- lookThroughEnv' <$> (_evalSSEnv <$> getS)
     case w of
       Nothing -> throw WordIsNotDefinedError
       Just expr -> return expr
@@ -113,19 +124,20 @@ getWord name =
             Just v -> Just v
 
 getProgramEnv :: EvalStateM (Environment)
-getProgramEnv = _evalSSEnv <$> get
+getProgramEnv = _evalSSEnv <$> getS
 
 getProgramStack :: EvalStateM [Expr]
-getProgramStack = _evalSStack <$> get
+getProgramStack = _evalSStack <$> getS
 
 modifyProgramStack :: ([Expr] -> [Expr]) -> EvalStateM ()
-modifyProgramStack f = modify (\oldState ->
+modifyProgramStack f = modifyS (\oldState ->
                                  oldState
                                 { _evalSStack = f $ _evalSStack oldState })
 
 
 runTimeError :: (Exception a) => a -> EvalStateM ()
-runTimeError = lift . throwIO
+runTimeError = EvalStateM . lift . throwIO
+
 
 type RecordMap = M.Map FieldName Expr
 newtype FieldName = FieldName String

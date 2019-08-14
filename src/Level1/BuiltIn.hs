@@ -5,7 +5,6 @@ module Level1.BuiltIn where
 import Level1.Types
 import Level1.Eval
 import qualified Data.Map.Strict as M
-import Control.Monad.State.Strict
 
 -- | Run an interpreter with the defualt environment
 runDefaultEvalStateM :: EvalStateM a -> IO EvalState
@@ -105,29 +104,29 @@ defaultEnv = M.fromList
                       , Quote [ Word $ FNName "b"
                               -- , BuiltinWord $ do
                               --     env <- getProgramEnv
-                              --     lift $ print env
+                              --     liftS $ print env
                               --     a <- (getWord $ FNName "a")
                               --     b <- (getWord $ FNName "b")
                               --     i <- (getWord $ FNName "i")
-                              --     lift $ print a
-                              --     lift $ print b
-                              --     lift $ print i
+                              --     liftS $ print a
+                              --     liftS $ print b
+                              --     liftS $ print i
                               --     stack <- getProgramStack
-                              --     lift $ print stack
+                              --     liftS $ print stack
                               ]
                       , Word $ FNName "i"
                       , Literal $ VInt 0
                       , BuiltinWord $ do
                           -- env <- getProgramEnv
-                          -- lift $ print env
+                          -- liftS $ print env
                           -- a <- (getWord $ FNName "a")
                           b <- (getWord $ FNName "b")
                           -- i <- (getWord $ FNName "i")
-                          -- lift $ print a
-                          lift $ print b
-                          -- lift $ print i
+                          -- liftS $ print a
+                          liftS $ print b
+                          -- liftS $ print i
                           -- stack <- getProgramStack
-                          -- lift $ print stack
+                          -- liftS $ print stack
                       , largerThan
                       , vif])]
 
@@ -230,7 +229,7 @@ largerThan = BuiltinWord $ do
                  then getWord $ FNName "true"
                  else getWord $ FNName "false")
     (x', y') -> do
-      state <- get
+      state <- getS
       error ("Expected two numbers. Got instead:\n x: " ++
               show x' ++
               "\n y: " ++ show y' ++
